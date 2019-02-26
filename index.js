@@ -3,6 +3,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 
+const Users = require('./users/usersModel');
+
 const server = express();
 
 server.use(helmet());
@@ -63,12 +65,10 @@ function restricted(req, res, next) {
         if (user && bcrypt.compareSync(password, user.password)) {
           next();
         } else {
-          res
-            .status(401)
-            .json({
-              errorMessage:
-                'Invalid Credentials, Please provide a valid username and password.',
-            });
+          res.status(401).json({
+            errorMessage:
+              'Invalid Credentials, Please provide a valid username and password.',
+          });
         }
       })
       .catch(error => {
