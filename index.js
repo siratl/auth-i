@@ -2,14 +2,28 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const session = require('express-session');
 
 const Users = require('./users/usersModel');
 
 const server = express();
 
+const sessionConfig = {
+  name: 'dreamer',
+  secret: 'the lady dreams, accurately',
+  cookie: {
+    maxAge: 1000 * 60 * 20, // in ms
+    secure: false,
+  },
+  httpOnly: true,
+  resave: false,
+  saveUninitialized: false,
+};
+
 server.use(helmet());
 server.use(express.json());
 server.use(cors());
+server.use(session(sessionConfig));
 
 server.get('/', (req, res) => {
   res.send('Server is Running!');
@@ -42,6 +56,7 @@ server.post('/api/login', (req, res) => {
       // check that passwords match
 
       if (user && bcrypt.compareSync(password, user.password)) {
+        req.session.user = user;
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
         res.status(401).json({ message: 'Invalid Credentials' });
@@ -54,28 +69,13 @@ server.post('/api/login', (req, res) => {
 
 //*********** LISTS USERS ON AUTHENTICATION **************/
 function restricted(req, res, next) {
-  const { username, password } = req.headers;
-
-  if (username && password) {
-    Users.findBy({ username })
-      .first()
-      .then(user => {
-        // check that passwords match
-
-        if (user && bcrypt.compareSync(password, user.password)) {
-          next();
-        } else {
-          res.status(401).json({
-            errorMessage:
-              'Invalid Credentials, Please provide a valid username and password.',
-          });
-        }
-      })
-      .catch(error => {
-        res.status(500).json({ errorMessage: 'Unexpected Server Error!' });
-      });
+  if (req.session && req.session.user) {
+    next();
   } else {
-    res.status(400).json({ errorMessage: 'No credentials provided' });
+    res.status(401).json({
+      errorMessage:
+        'Invalid Credentials, Please provide a valid username and password.',
+    });
   }
 }
 
