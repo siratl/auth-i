@@ -3,7 +3,9 @@ const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
+const KnexSessionStore = require('connect-session-knex')(session);
 
+const db = require('./data/dbConfig');
 const Users = require('./users/usersModel');
 
 const server = express();
@@ -13,11 +15,19 @@ const sessionConfig = {
   secret: 'the lady dreams, accurately',
   cookie: {
     maxAge: 1000 * 60 * 20, // in ms
-    secure: false,
+    secure: false, // used over https only
   },
-  httpOnly: true,
+  httpOnly: true, // cannot access cookie from js using document.cookie
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: false, /// GDPR Laws against setting cookies automatically
+
+  store: new KnexSessionStore({
+    knex: db,
+    tablename: 'sessions',
+    sidfieldname: 'sid',
+    createtable: true,
+    clearInterval: 1000 * 60 * 60, // in ms
+  }),
 };
 
 server.use(helmet());
