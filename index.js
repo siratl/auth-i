@@ -39,6 +39,7 @@ server.post('/api/register', (req, res) => {
 
   Users.add(user)
     .then(savedUser => {
+      req.session.user = savedUser; // Save cookie once registered
       res.status(201).json(savedUser);
     })
     .catch(error => {
@@ -57,7 +58,9 @@ server.post('/api/login', (req, res) => {
 
       if (user && bcrypt.compareSync(password, user.password)) {
         req.session.user = user;
-        res.status(200).json({ message: `Welcome ${user.username}!` });
+        res
+          .status(200)
+          .json({ message: `Welcome ${user.username}! You are logged in.` });
       } else {
         res.status(401).json({ message: 'Invalid Credentials' });
       }
@@ -73,8 +76,7 @@ function restricted(req, res, next) {
     next();
   } else {
     res.status(401).json({
-      errorMessage:
-        'Invalid Credentials, Please provide a valid username and password.',
+      errorMessage: 'Please Login! Provide a valid username and password.',
     });
   }
 }
@@ -85,6 +87,21 @@ server.get('/api/users', restricted, (req, res) => {
       res.json(users);
     })
     .catch(err => res.send(err));
+});
+
+//*********** LOG OUT **************/
+server.get('/api/logout', (req, res) => {
+  if (req.session) {
+    req.session.destroy(err => {
+      if (err) {
+        res.send('Error logging out.');
+      } else {
+        res.send('You have logged out sucessfully.');
+      }
+    });
+  } else {
+    res.end();
+  }
 });
 
 //*********** PORT **************/
